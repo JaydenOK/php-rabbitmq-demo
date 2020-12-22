@@ -33,7 +33,8 @@
         "ext-sockets": "*",
         "ext-mbstring": "*",
         "phpseclib/phpseclib": "^2.0.0",
-        "ext-amqp": "*"
+        "ext-amqp": "*",
+      "ext-json": "*"
     },
     "require-dev": {
         "ext-curl": "*",
