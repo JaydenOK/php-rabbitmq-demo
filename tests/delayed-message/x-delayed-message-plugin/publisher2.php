@@ -1,6 +1,6 @@
 <?php
 
-require 'bootstrap.php';
+require '../../bootstrap.php';
 
 use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
@@ -26,18 +26,9 @@ $channel = $connection->channel();
  * ######## 连接监听端口
  * listeners.tcp.default = 6666
  * 重启: systemctl restart rabbitmq-server.service
- *
- * @param string $exchange
- * @param string $type
- * @param bool $passive
- * @param bool $durable
- * @param bool $auto_delete
- * @param bool $internal
- * @param bool $nowait
- * @return mixed|null
  */
 $channel->exchange_declare($exchange, AMQPExchangeType::X_DELAYED_MESSAGE, false, true, false, false, false,
-    new AMQPTable(["x-delayed-type" => AMQPExchangeType::FANOUT])
+    new AMQPTable(["x-delayed-type" => AMQPExchangeType::DIRECT])
 );
 /**
  * Declares queue, creates if needed
@@ -57,6 +48,12 @@ $channel->queue_declare($queue, false, false, false, false, false,
 );
 
 $channel->queue_bind($queue, $exchange);
+
+//构建生产者
+//几个注意点：
+//交换机类型一定要设置为 x-delayed-message
+//设置 x-delayed-type 为 direct，当然也可以是 topic 等
+//发送消息时设置消息头 headers 的 x-delay 属性，即延迟时间，如果不设置消息将会立即投递
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
