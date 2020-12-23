@@ -8,8 +8,9 @@ use PhpAmqpLib\Exchange\AMQPExchangeType;
 use PhpAmqpLib\Message\AMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
 
-$exchange = 'test_amqplib';
-$queue = 'test_amqplib_queue_1';
+$exchange = 'x-delayed-message-exchange';
+$queue = 'x-delayed-message-queue';
+$consumerTag = 'x-delayed-message-tag';
 
 $connection = new AMQPStreamConnection(HOST, PORT, USER, PASS);
 $channel = $connection->channel();
@@ -30,21 +31,9 @@ $channel = $connection->channel();
 $channel->exchange_declare($exchange, AMQPExchangeType::X_DELAYED_MESSAGE, false, true, false, false, false,
     new AMQPTable(["x-delayed-type" => AMQPExchangeType::DIRECT])
 );
-/**
- * Declares queue, creates if needed
- *
- * @param string $queue
- * @param bool $passive
- * @param bool $durable
- * @param bool $exclusive
- * @param bool $auto_delete
- * @param bool $nowait
- * @param null $arguments
- * @param null $ticket
- * @return mixed|null
- */
-$channel->queue_declare($queue, false, false, false, false, false,
-    new AMQPTable(["x-dead-letter-exchange" => "delayed"])
+
+$channel->queue_declare($queue, false, true, false, false, false,
+    new AMQPTable(["x-dead-letter-exchange" => $exchange])
 );
 
 $channel->queue_bind($queue, $exchange);
@@ -55,7 +44,6 @@ $channel->queue_bind($queue, $exchange);
 //设置 x-delayed-type 为 direct，当然也可以是 topic 等
 //发送消息时设置消息头 headers 的 x-delay 属性，即延迟时间，如果不设置消息将会立即投递
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// ///////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -64,10 +52,11 @@ for ($y = 0; $y < 6; $y++) {
     //延迟秒数
     $second = pow(2, $y);
     $data = ['code' => 0, 'message' => 'ok', 'data' => ['second' => $second, 'rand' => rand()]];
-    $msg = json_encode($data, JSON_UNESCAPED_UNICODE);
-    $message = new AMQPMessage($msg, ['delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]);
+    $dataString = json_encode($data, JSON_UNESCAPED_UNICODE);
+    $message = new AMQPMessage($dataString, ['delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]);
     $message->set('application_headers', new AMQPTable(["x-delay" => $second * 1000]));
     $channel->basic_publish($message, $exchange);
+    echo date('[Y-m-d H:i:s]:') . $dataString . PHP_EOL;
 }
 
 

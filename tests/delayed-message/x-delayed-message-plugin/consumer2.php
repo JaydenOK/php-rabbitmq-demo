@@ -1,9 +1,7 @@
 <?php
 /**
  * 使用x-delayed-message 插件实现消息延迟投递
- */
-
-/**
+ * exchange_declare，queue_declare 生产端，消费端参数需保持一致
  * 构建消费端消费端改变不大，交换机声明处同生产者保持一样，设置交换机类型（x-delayed-message）和 x-delayed-type
  */
 
@@ -15,10 +13,9 @@ use PhpAmqpLib\Wire\AMQPTable;
 
 require '../../bootstrap.php';
 
-$exchange = 'test_amqplib';
-$queue = 'test_amqplib_queue_1';
-$consumerTag = 'test_amqplib_tag_2';
-
+$exchange = 'x-delayed-message-exchange';
+$queue = 'x-delayed-message-queue';
+$consumerTag = 'x-delayed-message-tag';
 
 $connection = new AMQPStreamConnection(HOST, PORT, USER, PASS);
 $channel = $connection->channel();
@@ -26,21 +23,9 @@ $channel = $connection->channel();
 $channel->exchange_declare($exchange, AMQPExchangeType::X_DELAYED_MESSAGE, false, true, false, false, false,
     new AMQPTable(["x-delayed-type" => AMQPExchangeType::FANOUT])
 );
-/**
- * Declares queue, creates if needed
- *
- * @param string $queue
- * @param bool $passive
- * @param bool $durable
- * @param bool $exclusive
- * @param bool $auto_delete
- * @param bool $nowait
- * @param null $arguments
- * @param null $ticket
- * @return mixed|null
- */
-$channel->queue_declare($queue, false, false, false, false, false,
-    new AMQPTable(["x-dead-letter-exchange" => "delayed"])
+
+$channel->queue_declare($queue, false, true, false, false, false,
+    new AMQPTable(["x-dead-letter-exchange" => $exchange])
 );
 
 $channel->queue_bind($queue, $exchange);
@@ -49,7 +34,8 @@ $channel->queue_bind($queue, $exchange);
 /// ///////////////////////////////////////////////////////////////////////////////////////////////
 
 
-echo "\n  bound {$queue}:{$exchange}, consume... \n";
+echo ' [*] Waiting for message. To exit press CTRL+C ' . PHP_EOL;
+
 /*
     queue: Queue from where to get the messages
     consumer_tag: Consumer identifier
@@ -72,7 +58,7 @@ echo "\n  bound {$queue}:{$exchange}, consume... \n";
  * 9    arguments    null
  */
 $channel->basic_consume($queue, $consumerTag, false, false, false, false, function (AMQPMessage $message) {
-    echo "\n[receive data]:\n" . $message->body;
+    echo date('[Y-m-d H:i:s]:') . $message->body . PHP_EOL;
     $data = json_decode($message->body, true);
     if ($data['code'] === 0) {
         $message->ack();
