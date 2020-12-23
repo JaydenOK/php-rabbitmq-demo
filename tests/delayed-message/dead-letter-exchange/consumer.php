@@ -31,10 +31,8 @@ $channel->queue_bind($orderDeadLetterQueue, $orderDeadLetterExchange, $orderDead
 echo ' [*] Waiting for message. To exit press CTRL+C ' . PHP_EOL;
 
 $callback = function ($msg) {
-    echo date('Y-m-d H:i:s') . " [x] Received", $msg->body, PHP_EOL;
-
+    echo date('[Y-m-d H:i:s]:') . $msg->body . PHP_EOL;
     $msg->delivery_info['channel']->basic_ack($msg->delivery_info['delivery_tag']);
-
 };
 
 //只有consumer已经处理并确认了上一条message时queue才分派新的message给它

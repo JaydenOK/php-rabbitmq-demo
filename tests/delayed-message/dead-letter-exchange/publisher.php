@@ -18,8 +18,9 @@ $channel = $connection->channel();
 $channel->exchange_declare($orderDeadLetterExchange, 'direct', false, true, false);
 $channel->exchange_declare($orderExchange, 'direct', false, true, false);
 
-//如果同时设置队列消息过期时间和投递消息过期时间，那么以过期时间小的那个数值为准。
-$queueDelayTime = 10;
+//当同时指定了 queue 和 message 的 TTL 值(x-message-ttl & expiration)，则两者中较小的那个才会起作用。
+//存在于 queue 中的当前 message 将最多只存活 3600 秒
+$queueDelayTime = 3600;
 //配置order-exchange属性，设置x-dead-letter-exchange，x-dead-letter-routing-key为到过期时间后，消息投放的交换机、路由，x-message-ttl设置时间
 $table = new AMQPTable();
 $table->set('x-dead-letter-exchange', $orderDeadLetterExchange);
@@ -47,7 +48,7 @@ for ($y = 0; $y < 6; $y++) {
     $dataString = json_encode($data, JSON_UNESCAPED_UNICODE);
     $message = new AMQPMessage($dataString,
         [
-            'expiration' => intval($second),
+            'expiration' => (int)$second * 1000,
             'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
         ]
     );
