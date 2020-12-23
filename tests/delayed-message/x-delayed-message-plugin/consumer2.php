@@ -3,6 +3,8 @@
  * 使用x-delayed-message 插件实现消息延迟投递
  * exchange_declare，queue_declare 生产端，消费端参数需保持一致
  * 构建消费端消费端改变不大，交换机声明处同生产者保持一样，设置交换机类型（x-delayed-message）和 x-delayed-type
+ * 注意：开多个消费者进程处理一个队列，则只会有一个进程获取到消息
+ *
  */
 
 use PhpAmqpLib\Connection\AbstractConnection;
